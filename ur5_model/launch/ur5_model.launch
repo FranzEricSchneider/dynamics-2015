@@ -1,5 +1,5 @@
 <launch>
-	<param name="robot_description" command="$(find xacro)/xacro.py '$(find ur5_model)/src/basic_ur5_rviz.urdf.xacro'" />
+	<param name="robot_description" command="$(find xacro)/xacro.py '$(find ur5_model)/meshes/ur5.urdf.xacro'" />
 	<node name="arm_visualizer" pkg="ur5_model" type="arm_visualizer" output="screen"/>
 	<node name="robot_state_publisher" pkg="robot_state_publisher" type="state_publisher" />
 	<node name="rviz" pkg="rviz" type="rviz" args="-d $(find ur5_model)/urdf.rviz" required="true" />

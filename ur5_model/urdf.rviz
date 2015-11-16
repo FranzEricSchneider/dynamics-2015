@@ -62,245 +62,37 @@ Visualization Manager:
         Expand Link Details: false
         Expand Tree: false
         Link Tree Style: Links in Alphabetic Order
-        base_link:
+        ur5/base_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
           Value: true
-        base_tactile:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        distal_1:
+        ur5/forearm_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
           Value: true
-        distal_1_tactile:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        distal_2:
+        ur5/shoulder_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
           Value: true
-        distal_2_tactile:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        distal_3:
+        ur5/upper_arm_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
           Value: true
-        distal_3_tactile:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        distal_pad_1:
+        ur5/wrist_1_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
           Value: true
-        distal_pad_2:
+        ur5/wrist_2_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
           Value: true
-        distal_pad_3:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        finger[1]/flex_link[1]:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        finger[1]/flex_link[2]:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        finger[1]/flex_link[3]:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        finger[1]/flex_link[4]:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        finger[1]/flex_link[5]:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        finger[1]/flex_link[6]:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        finger[1]/flex_link[7]:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        finger[1]/flex_link[8]:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        finger[1]/flex_link[9]:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        finger[2]/flex_link[1]:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        finger[2]/flex_link[2]:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        finger[2]/flex_link[3]:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        finger[2]/flex_link[4]:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        finger[2]/flex_link[5]:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        finger[2]/flex_link[6]:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        finger[2]/flex_link[7]:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        finger[2]/flex_link[8]:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        finger[2]/flex_link[9]:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        finger[3]/flex_link[1]:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        finger[3]/flex_link[2]:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        finger[3]/flex_link[3]:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        finger[3]/flex_link[4]:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        finger[3]/flex_link[5]:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        finger[3]/flex_link[6]:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        finger[3]/flex_link[7]:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        finger[3]/flex_link[8]:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        finger[3]/flex_link[9]:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        pad:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        proximal_1:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        proximal_1_tactile:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        proximal_2:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        proximal_2_tactile:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        proximal_3:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        proximal_3_tactile:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        proximal_pad_1:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        proximal_pad_2:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        proximal_pad_3:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        swivel_1:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        swivel_2:
+        ur5/wrist_3_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
@@ -336,7 +128,7 @@ Visualization Manager:
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
-    Fixed Frame: base_link
+    Fixed Frame: ur5/base_link
     Frame Rate: 30
   Name: root
   Tools:
@@ -357,16 +149,16 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 0.296388
+      Distance: 1.50664
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.06
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: -0.01232
-        Y: 0.00213593
-        Z: 0.0739922
+        X: -0.299923
+        Y: -0.108845
+        Z: -0.0494773
       Name: Current View
       Near Clip Distance: 0.01
       Pitch: 0.5048

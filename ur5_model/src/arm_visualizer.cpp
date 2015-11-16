@@ -1,13 +1,8 @@
-#include <string>
-
 #include <ros/ros.h>
-#include <geometry_msgs/TransformStamped.h>
 #include <sensor_msgs/JointState.h>
 
 #include <ur5_model/JointAngles.h>
 #include "arm_visualizer.h"
-
-using namespace std;
 
 
 ros::Publisher joint_pub;
@@ -22,12 +17,12 @@ int main(int argc, char **argv)
 
   joint_state.name.resize(6);
   joint_state.position.resize(6);
-  joint_state.name[0] ="shoulder_pan_joint";
-  joint_state.name[1] ="shoulder_lift_joint";
-  joint_state.name[2] ="elbow_joint";
-  joint_state.name[3] ="wrist_1_joint";
-  joint_state.name[4] ="wrist_2_joint";
-  joint_state.name[5] ="wrist_3_joint";
+  joint_state.name[0] ="ur5/shoulder_pan_joint";
+  joint_state.name[1] ="ur5/shoulder_lift_joint";
+  joint_state.name[2] ="ur5/elbow_joint";
+  joint_state.name[3] ="ur5/wrist_1_joint";
+  joint_state.name[4] ="ur5/wrist_2_joint";
+  joint_state.name[5] ="ur5/wrist_3_joint";
 
   ros::Publisher cmd_pub = n.advertise<ur5_model::JointAngles>("/ur5_model/joint_command", 10);
   ros::Subscriber arm_sub = n.subscribe("/ur5_model/joint_command", 10, publish_arm_to_rviz);
