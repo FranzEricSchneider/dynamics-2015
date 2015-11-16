@@ -84,6 +84,13 @@
 <!-- ADDED BY ERIC -->
   <xacro:ur5_robot prefix="ur5/" joint_limited="false"/>
 
+<!--   <joint name="shoulder_link_CoG_joint" type="fixed">
+    <origin xyz="0 0 0" rpy="0 0 0" />
+    <parent link="ur5/shoulder_link" />
+    <child link="shoulder_link_CoG" />
+  </joint>
+
+  <link name="shoulder_link_CoG"/> -->
 
 
 
@@ -361,6 +368,9 @@
 
 
   </xacro:macro>
+
+
+
 
 
 </robot>

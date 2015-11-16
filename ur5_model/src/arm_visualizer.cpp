@@ -1,11 +1,14 @@
 #include <ros/ros.h>
 #include <sensor_msgs/JointState.h>
+// #include <visualization_msgs/Marker.h>
+// #include <visualization_msgs/MarkerArray.h>
 
 #include <ur5_model/JointAngles.h>
 #include "arm_visualizer.h"
 
 
 ros::Publisher joint_pub;
+// ros::Publisher CoG_pub;
 sensor_msgs::JointState joint_state;
 
 
@@ -14,6 +17,7 @@ int main(int argc, char **argv)
   ros::init(argc, argv, "arm_visualizer");
   ros::NodeHandle n;
   joint_pub = n.advertise<sensor_msgs::JointState>("joint_states", 1);
+  // CoG_pub = n.advertise<visualization_msgs::MarkerArray>("CoG_array", 1);
 
   joint_state.name.resize(6);
   joint_state.position.resize(6);
@@ -49,4 +53,32 @@ void publish_arm_to_rviz(const ur5_model::JointAnglesConstPtr& arm) {
   joint_state.position[5] = arm->arm_angle[5];
 
   joint_pub.publish(joint_state);
+
+  // visualization_msgs::MarkerArray marker_array;
+  // visualization_msgs::Marker CoG = makeCoGMarker(40.0);
+  // CoG.header.frame_id = "shoulder_link_CoG";
+  // marker_array.markers.push_back(CoG);
+  // CoG_pub.publish(marker_array);
 }
+
+// // Takes mass in kg and makes an apprpriately sized arrow
+// visualization_msgs::Marker makeCoGMarker(int mass)
+// {
+//   visualization_msgs::Marker marker;
+//   marker.header.stamp = ros::Time();
+//   marker.ns = "CoG";
+//   marker.type = visualization_msgs::Marker::ARROW;
+
+//   marker.pose.position.x = 0.5;
+//   marker.pose.position.y = 1;
+//   marker.pose.position.z = 0;
+//   marker.pose.orientation.w = 1.0;
+//   marker.scale.x = 10.0;
+//   marker.scale.y = 10.0;
+//   marker.scale.z = 100.0;
+//   marker.color.r = 1.0;
+//   marker.color.g = 0.0;
+//   marker.color.b = 0.0;
+//   marker.color.a = 0.5;
+//   return marker;
+// }
