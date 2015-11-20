@@ -49,7 +49,7 @@ class UR5ForwardKinematics():
                                             (self.th5, thetas[4]),
                                             (self.th6, thetas[5])])
         initial_vector = sp.Matrix([0.0, 0, 0, 1.0])
-        return(B_w_zero_angles * initial_vector)
+        return(B_w_zero_angles.inv() * initial_vector)
 
 
 # See Theory of Applied Robotics pg. 242
