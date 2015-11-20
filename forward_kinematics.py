@@ -1,7 +1,7 @@
 # You can install sympy with sudo pip install sympy
 import numpy as np
 import sympy as sp
-from sympy import pi
+from numpy import pi
 
 
 class UR5ForwardKinematics():
@@ -32,6 +32,24 @@ class UR5ForwardKinematics():
         self.B04 = self.B34 * self.B23 * self.B12 * self.B01
         self.B05 = self.B45 * self.B34 * self.B23 * self.B12 * self.B01
         self.B06 = self.B56 * self.B45 * self.B34 * self.B23 * self.B12 * self.B01
+
+    def return_vector_to_reference_frame(self, transfer_matrix, thetas):
+        B = transfer_matrix
+        # Taken from ur5.urdf.xacro
+        B_w_lengths = B.subs([(self.d1, 0.089159),
+                              (self.a2, 0.42500),
+                              (self.a3, 0.39225),
+                              (self.d4, 0.10915),
+                              (self.d5, 0.09465),
+                              (self.d6, 0.0823)])
+        B_w_zero_angles = B_w_lengths.subs([(self.th1, thetas[0]),
+                                            (self.th2, thetas[1]),
+                                            (self.th3, thetas[2]),
+                                            (self.th4, thetas[3]),
+                                            (self.th5, thetas[4]),
+                                            (self.th6, thetas[5])])
+        initial_vector = sp.Matrix([0.0, 0, 0, 1.0])
+        return(B_w_zero_angles * initial_vector)
 
 
 # See Theory of Applied Robotics pg. 242
