@@ -1,4 +1,5 @@
 from math import pi
+import numpy as np
 import sympy as sp
 
 import rospy
@@ -27,18 +28,18 @@ class TestForwardKinematics():
         B04_result = self.FK.return_vector_to_reference_frame(self.FK.B04, actual_pose.arm_angle)
         B05_result = self.FK.return_vector_to_reference_frame(self.FK.B05, actual_pose.arm_angle)
         B06_result = self.FK.return_vector_to_reference_frame(self.FK.B06, actual_pose.arm_angle)
-        # B = B01_result
-        B = B02_result
-        # B = B.row_join(B02_result)
-        # B = B.row_join(B03_result)
-        # B = B.row_join(B04_result)
-        # B = B.row_join(B05_result)
-        # B = B.row_join(B06_result)
+        B = [B01_result]
+        B.append( B02_result )
+        B.append( B03_result )
+        B.append( B04_result )
+        B.append( B05_result )
+        B.append( B06_result )
         self.marker_pub.publish(create_marker(B))
         create_origin(self.origin_pubs)
+        rospy.loginfo('Finished callback')
 
 
-def create_marker(vector):
+def create_marker(matrices):
     marker = Marker()
     marker.header.frame_id = 'ur5/base_link'
     marker.header.stamp = rospy.Time.now()
@@ -47,9 +48,9 @@ def create_marker(vector):
     marker.type = Marker.LINE_LIST
     marker.action = Marker.ADD;
     marker.points = []
-    for i in range(len(vector[0, :])):
+    for i in range(len(matrices)):
         marker.points.append( Point() )
-        marker.points.append( Point(x=-vector[0, i], y=-vector[1, i], z=vector[2, i]) )
+        marker.points.append( Point(x=-matrices[i][0, 0], y=-matrices[i][1, 0], z=matrices[i][2, 0]) )
     # marker.points = [Point(), Point(x=1, y=1, z=1)]
     marker.scale.x = 0.01;
     marker.color.a = 1.0;
@@ -59,9 +60,9 @@ def create_marker(vector):
 
 
 def create_origin(origin_pubs):
-    x_axis = create_marker(sp.Matrix([1, 0, 0]))
-    y_axis = create_marker(sp.Matrix([0, 1, 0]))
-    z_axis = create_marker(sp.Matrix([0, 0, 1]))
+    x_axis = create_marker([np.matrix('1; 0; 0')])
+    y_axis = create_marker([np.matrix('0; 1; 0')])
+    z_axis = create_marker([np.matrix('0; 0; 1')])
     x_axis.color.r = 1.0; x_axis.color.g = 0.0; x_axis.color.b = 0.0;
     x_axis.scale.x = 0.005;
     y_axis.color.r = 0.0; y_axis.color.g = 1.0; y_axis.color.b = 0.0;

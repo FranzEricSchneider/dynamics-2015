@@ -2,6 +2,7 @@
 import numpy as np
 import sympy as sp
 from numpy import pi
+from numpy.linalg import inv
 
 
 class UR5ForwardKinematics():
@@ -48,8 +49,9 @@ class UR5ForwardKinematics():
                                             (self.th4, thetas[3]),
                                             (self.th5, thetas[4]),
                                             (self.th6, thetas[5])])
-        initial_vector = sp.Matrix([0.0, 0, 0, 1.0])
-        return(B_w_zero_angles.inv() * initial_vector)
+        B_w_zero_angles = np.matrix(B_w_zero_angles.tolist())
+        initial_vector = np.matrix('0; 0; 0; 1')
+        return(np.dot(inv(B_w_zero_angles), initial_vector))
 
 
 # See Theory of Applied Robotics pg. 242

@@ -8,10 +8,10 @@ from ur5_model.msg import JointAngles
 def sine_publisher():
     pub = rospy.Publisher('/ur5_model/joint_command', JointAngles, queue_size=1)
     rospy.init_node('sine_publisher')
-    # rate = rospy.Rate(0.1)    # 50 Hz
-    rate = rospy.Rate(0.2)    # 50 Hz
+    # rate = rospy.Rate(0.2)   # 0.2 Hz
+    rate = rospy.Rate(50)    # 50 Hz
     counter = 0
-    scalar = 4.0
+    scalar = 50.0
     while not rospy.is_shutdown():
         deg = counter / scalar
         cmd = JointAngles([math.sin(deg), math.cos(deg)] * 3)
