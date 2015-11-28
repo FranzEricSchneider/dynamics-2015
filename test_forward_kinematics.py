@@ -7,7 +7,7 @@ from visualization_msgs.msg import Marker
 from geometry_msgs.msg import Point
 from std_msgs.msg import Header
 
-from forward_kinematics import UR5ForwardKinematics
+from symbolic_forward_kinematics import UR5ForwardKinematics
 from ur5_model.msg import JointAngles
 
 
