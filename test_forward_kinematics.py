@@ -7,7 +7,7 @@ from visualization_msgs.msg import Marker
 from geometry_msgs.msg import Point
 from std_msgs.msg import Header
 
-from symbolic_forward_kinematics import UR5ForwardKinematics
+from symbolic_forward_kinematics import UR5SymbolicForwardKinematics
 from ur5_model.msg import JointAngles
 
 
@@ -17,7 +17,7 @@ class TestForwardKinematics():
         self.marker_pub = rospy.Publisher('visualization_marker', Marker, queue_size=1)
         self.origin_pubs = [rospy.Publisher(s + '_axis', Marker, queue_size=1) for s in ['x', 'y', 'z']]
         rospy.Subscriber("/ur5_model/joint_command", JointAngles, self.arm_callback)
-        self.FK = UR5ForwardKinematics()
+        self.FK = UR5SymbolicForwardKinematics()
         rospy.spin()
 
     def arm_callback(self, actual_pose):
