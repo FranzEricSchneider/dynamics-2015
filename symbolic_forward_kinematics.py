@@ -21,13 +21,14 @@ class UR5SymbolicForwardKinematics():
         self.th5 = sp.Symbol("th_5")
         self.th6 = sp.Symbol("th_6")
 
+        # Transform matrices from reference frame to reference frame
         self.B01 = make_DH(self.th1, self.d1, 0,       0)
         self.B12 = make_DH(self.th2, 0,       0,       pi / 2.0)
         self.B23 = make_DH(self.th3, 0,       self.a2, 0)
         self.B34 = make_DH(self.th4, self.d4, self.a3, 0)
         self.B45 = make_DH(self.th5, self.d5, 0,       pi / 2.0)
         self.B56 = make_DH(self.th6, self.d6, 0,       -pi / 2.0)
-        
+
         self.B02 = self.B12 * self.B01
         self.B03 = self.B23 * self.B12 * self.B01
         self.B04 = self.B34 * self.B23 * self.B12 * self.B01

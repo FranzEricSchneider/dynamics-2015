@@ -54,24 +54,24 @@ class UR5ForwardKinematics():
 # See Theory of Applied Robotics pg. 242
 # Uses the Denavit-Hartenberg method of reference frames
 def make_DH(theta, d, a, alpha):
-        # First, rotate by alpha around the x-axis
-        R_x = matrix([[1, 0, 0, 0],
-                      [0, cos(alpha), sin(alpha), 0],
-                      [0, -sin(alpha), cos(alpha), 0],
-                      [0, 0, 0, 1]])
-        # Then travel by a along the x-axis
-        D_x = matrix([[1, 0, 0, -a],
-                      [0, 1, 0, 0],
-                      [0, 0, 1, 0],
-                      [0, 0, 0, 1]])
-        # Then rotate by theta around the new z-axis
-        R_z = matrix([[cos(theta), sin(theta), 0, 0],
-                      [-sin(theta), cos(theta), 0, 0],
-                      [0, 0, 1, 0],
-                      [0, 0, 0, 1]])
-        # Then travel by d along the z-axis
-        D_z = matrix([[1, 0, 0, 0],
-                      [0, 1, 0, 0],
-                      [0, 0, 1, -d],
-                      [0, 0, 0, 1]])
-        return D_z * R_z * D_x * R_x
+    # First, rotate by alpha around the x-axis
+    R_x = matrix([[1, 0, 0, 0],
+                  [0, cos(alpha), sin(alpha), 0],
+                  [0, -sin(alpha), cos(alpha), 0],
+                  [0, 0, 0, 1]])
+    # Then travel by a along the x-axis
+    D_x = matrix([[1, 0, 0, -a],
+                  [0, 1, 0, 0],
+                  [0, 0, 1, 0],
+                  [0, 0, 0, 1]])
+    # Then rotate by theta around the new z-axis
+    R_z = matrix([[cos(theta), sin(theta), 0, 0],
+                  [-sin(theta), cos(theta), 0, 0],
+                  [0, 0, 1, 0],
+                  [0, 0, 0, 1]])
+    # Then travel by d along the z-axis
+    D_z = matrix([[1, 0, 0, 0],
+                  [0, 1, 0, 0],
+                  [0, 0, 1, -d],
+                  [0, 0, 0, 1]])
+    return D_z * R_z * D_x * R_x

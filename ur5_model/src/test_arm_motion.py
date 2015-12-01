@@ -11,6 +11,7 @@ def sine_publisher():
     # rate = rospy.Rate(0.2)   # 0.2 Hz
     rate = rospy.Rate(50)    # 50 Hz
     counter = 0
+    # scalar = 4.0
     scalar = 50.0
     while not rospy.is_shutdown():
         deg = counter / scalar

@@ -64,39 +64,32 @@ class InverseKinematics():
         return(effector_pose.psi)
 
     def calculate_theta_234(self, effector_pose, theta1, theta5, theta6):
-        # DH14 = inv(self.FK.DH45(theta5[0][0])) *\
-        #        inv(self.FK.DH56(theta6)) *\
-        #        effector_pose.DH06 *\
-        #        inv(self.FK.DH01(theta1[0]))
-        DH14 = inv(self.FK.DH45(0)) *\
-               inv(self.FK.DH56(0)) *\
+# TODO: Start plugging in actual angles
+        DH14 = inv(self.FK.DH45(theta5[0][0])) *\
+               inv(self.FK.DH56(theta6)) *\
                effector_pose.DH06 *\
-               inv(self.FK.DH01(0))
+               inv(self.FK.DH01(theta1[0]))
         # The translation in DH14 is from 4 to 1 in the 4 reference frame, so we can undo that
         translation14 = inv(DH14[0:3, 0:3]) * -DH14[0:3, 3]
-        # We use this x and y because it's the frame that defines the RRR linkage. See paper for details
-        x = translation14[0, 0]
-        y = translation14[2, 0]
-        # This gets a rotation matrix from 1 to 4 assuming that 1 is rotated by 90 deg around its x-axis,
+        # We use this x_prime and y_prime because it's the frame that defines the RRR linkage. See paper for details
+        x_prime = translation14[0, 0]
+        y_prime = translation14[2, 0]
+        # The inverse matrix gets a rotation matrix from 1 to 4 assuming that 1 is rotated by 90 deg around its x-axis,
         # therefore all planar. This is basically a global reference frame in the plane of the arm
-        R14_planar = inv(np.matrix([[1, 0, 0],
+        # The non inverse matrix takes into account the fact that d5 is -pi/2 radians off from x4 around the z4 axis
+        R14_planar = np.matrix([[np.cos(-np.pi/2),  np.sin(-np.pi/2), 0],
+                                [-np.sin(-np.pi/2), np.cos(-np.pi/2), 0],
+                                [0,                 0,                1]]) *\
+                     DH14[0:3, 0:3] *\
+                     inv(np.matrix([[1, 0, 0],
                                     [0, np.cos(np.pi/2),  np.sin(np.pi/2)],
-                                    [0, -np.sin(np.pi/2), np.cos(np.pi/2)]])) *\
-                     DH14[0:3, 0:3]
+                                    [0, -np.sin(np.pi/2), np.cos(np.pi/2)]]))
         # Phi is the 4 reference frame measured from a global frame. See paper for details
         phi = np.arccos(R14_planar[0, 0]) * np.sign(R14_planar[0, 1])
         # These L variables aren't strictly necessary, but they match the paper notation and make it easier to read
         l1 = self.FK.a2
         l2 = self.FK.a3
         l3 = self.FK.d5
-        # x_prime and y_prime are the x, y positions of the third link, as in the paper
-        x_prime = x - l3 * np.cos(phi)
-        y_prime = y - l3 * np.sin(phi)
-# Debugging this right here
-        print('l1 + l2')
-        print(l1 + l2)
-        print(x_prime)
-        print(y_prime)
         R_prime = np.sqrt( x_prime**2 + y_prime**2 )
         # lambda is a temporary variable in the paper, I made up alpha to break things up
         val_lambda = np.arctan2( -y_prime / R_prime, -x_prime / R_prime )
