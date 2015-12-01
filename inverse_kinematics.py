@@ -6,26 +6,39 @@
 import numpy as np
 from numpy.linalg import inv
 import rospy 
+from visualization_msgs.msg import Marker
+from geometry_msgs.msg import Point
 
 from forward_kinematics import UR5ForwardKinematics
 from ur5_model.msg import JointAngles
 
 
+# DEBUGGING - TRY LOOKING AT A SPECIFIC CASE WHERE theta = pi/4 or pi AND ARM IS ALONG THE X AXIS
+
+
 def main():
+    rospy.init_node('test_inverse_kinematics')
+    rospy.sleep(1.0)
+    pub = rospy.Publisher('/ur5_model/joint_command', JointAngles, queue_size=10)
+    pose_debug_pub = rospy.Publisher('effector_pose', Marker, queue_size=1)
     IK = InverseKinematics()
-    # effector_pose = InitialEffectorPose(0.8, 0, 0,
-    #                                     0, 0, 0)
-    effector_pose = InitialEffectorPose(IK.FK.a2 + IK.FK.a3,
-                                        -IK.FK.d4 - IK.FK.d6,
-                                        IK.FK.d1 - IK.FK.d5,
-                                        0, np.pi/2, 0)
-    IK.calculate_joints(effector_pose)
-    # pub = rospy.Publisher('/ur5_model/joint_command', JointAngles, queue_size=10)
-    # rospy.init_node('test_inverse_kinematics')
-    # rospy.sleep(1.0)
-    # a = JointAngles([theta1[0], 0, 0, 0, theta5[0][0], theta6])
-    # pub.publish(a)
-    # rospy.spin()
+    counter = 0
+    scalar = 5.0
+    radius = 0.5
+    while not rospy.is_shutdown():
+        effector_pose = InitialEffectorPose(radius * np.sin(counter / scalar),
+                                            radius * np.cos(counter / scalar),
+                                            radius * np.cos(counter / scalar) / 4,
+                                            0, np.pi/4, 0)
+        pose_debug_pub.publish(create_effector_marker(effector_pose.px, effector_pose.py, effector_pose.pz))
+    # effector_pose = InitialEffectorPose(0.4, 0, 0,
+    #                                     0, np.pi/2, 0)
+        th1, th2, th3, th4, th5, th6 = IK.calculate_joints(effector_pose)
+        a = JointAngles([th1[0], th2[1], th3[1], th4[1], th5[0][0], th6])
+        pub.publish(a)
+        rospy.sleep(0.5)
+        counter += 1
+    rospy.spin()
 
 
 class InverseKinematics():
@@ -37,12 +50,13 @@ class InverseKinematics():
         # Tentatively checked off logically
         theta1 = self.calculate_theta_1(effector_pose)
         # Tentatively checked off logically
-        theta5 = self.calculate_theta_5(effector_pose, theta1)
+        theta5 = self.calculate_theta_5(effector_pose, theta1[0])
         # Checked off logically
         theta6 = self.calculate_theta_6(effector_pose)
         # 
         theta2, theta3, theta4 = self.calculate_theta_234(effector_pose,
                                                           theta1, theta5, theta6)
+        return(theta1, theta2, theta3, theta4, theta5, theta6)
 
     def calculate_theta_1(self, effector_pose):
         offset56 = inv(effector_pose.R06) * np.matrix([0, 0, self.FK.d6]).transpose()
@@ -51,21 +65,25 @@ class InverseKinematics():
         p05z = effector_pose.pz - offset56[2, 0]
         R = np.sqrt( p05x**2 + p05y**2 )
         alpha1 = np.arctan2( p05y, p05x )
+        # print('self.FK.d4')
+        # print(self.FK.d4)
+        # print('R')
+        # print(R)
         alpha2 = np.arccos( self.FK.d4 / R )
         return( [alpha1 + alpha2 + np.pi / 2, alpha1 - alpha2 + np.pi / 2] )
 
     def calculate_theta_5(self, effector_pose, theta1):
         # Remember that theta1 is an array with no values
         numerator = effector_pose.px * np.sin(theta1) - effector_pose.py * np.cos(theta1) - self.FK.d4
-        abs_theta5 = np.arccos( numerator / self.FK.d6 )
-        return( [ [abs_theta5[0], -abs_theta5[0]], [abs_theta5[1], -abs_theta5[1]] ] )
+        abs_theta5 = np.arccos( numerator * np.sign(self.FK.d6) / self.FK.d6 )
+        return( [ [abs_theta5, -abs_theta5], [0, 0] ] )
+        # return( [ [abs_theta5[0], -abs_theta5[0]], [abs_theta5[1], -abs_theta5[1]] ] )
 
     def calculate_theta_6(self, effector_pose):
         return(effector_pose.psi)
 
     def calculate_theta_234(self, effector_pose, theta1, theta5, theta6):
-# TODO: Start plugging in actual angles
-        DH14 = inv(self.FK.DH45(theta5[0][0])) *\
+        DH14 = inv(self.FK.DH45(theta5[0][1])) *\
                inv(self.FK.DH56(theta6)) *\
                effector_pose.DH06 *\
                inv(self.FK.DH01(theta1[0]))
@@ -99,7 +117,8 @@ class InverseKinematics():
         # Same story for theta2 - it's theta3 in actuality
         theta2 = [np.arctan2((y_prime - l1 * np.sin(th1)) / l2,
                              (x_prime - l1 * np.cos(th1)) / l2) - th1 for th1 in theta1]
-        theta3 = [phi - (th1 + th2) for th1, th2 in zip(theta1, theta2)]
+        # The pi/2 term is added to reflect the fact that d5 is pi/2 off from x4
+        theta3 = [phi + np.pi/2 - (th1 + th2) for th1, th2 in zip(theta1, theta2)]
         return(theta1, theta2, theta3)
 
     def create_joint_permutations(self):
@@ -128,6 +147,25 @@ class InitialEffectorPose():
         translation = self.R06 * -np.matrix([x, y, z]).transpose()
         bottom_layer = np.matrix([0, 0, 0, 1])
         self.DH06 = np.vstack( [np.hstack([self.R06, translation]), bottom_layer] )
+
+
+def create_effector_marker(x, y, z):
+    marker = Marker()
+    marker.header.frame_id = 'ur5/base_link'
+    marker.header.stamp = rospy.Time.now()
+    marker.ns = ''
+    marker.id = 0
+    marker.type = Marker.LINE_LIST
+    marker.action = Marker.ADD;
+    marker.points = []
+    marker.points.append( Point() )
+    marker.points.append( Point(x=-x, y=-y, z=z) )
+    marker.scale.x = 0.03;
+    marker.color.a = 1.0;
+    marker.color.r = 1.0;
+    marker.color.g = 0.6;
+    return marker
+
 
 if __name__ == '__main__':
     main()

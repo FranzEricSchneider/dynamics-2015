@@ -6,7 +6,7 @@ Panels:
       Expanded:
         - /Global Options1
         - /Status1
-        - /RobotModel1
+        - /RobotModel1/Status1
       Splitter Ratio: 0.578512
     Tree Height: 595
   - Class: rviz/Selection
@@ -46,10 +46,10 @@ Visualization Manager:
         Y: 0
         Z: 0
       Plane: XY
-      Plane Cell Count: 40
+      Plane Cell Count: 20
       Reference Frame: <Fixed Frame>
       Value: true
-    - Alpha: 0.75
+    - Alpha: 1
       Class: rviz/RobotModel
       Collision Enabled: false
       Enabled: true
@@ -101,13 +101,13 @@ Visualization Manager:
       Value: true
       Visual Enabled: true
     - Class: rviz/Marker
-      Enabled: true
+      Enabled: false
       Marker Topic: /visualization_marker
       Name: Marker
       Namespaces:
-        "": true
+        {}
       Queue Size: 100
-      Value: true
+      Value: false
     - Class: rviz/Marker
       Enabled: true
       Marker Topic: /x_axis
@@ -127,6 +127,14 @@ Visualization Manager:
     - Class: rviz/Marker
       Enabled: true
       Marker Topic: /z_axis
+      Name: Marker
+      Namespaces:
+        "": true
+      Queue Size: 100
+      Value: true
+    - Class: rviz/Marker
+      Enabled: true
+      Marker Topic: /effector_pose
       Name: Marker
       Namespaces:
         "": true
@@ -156,22 +164,22 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 1.66784
+      Distance: 1.75446
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.06
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: -0.178118
-        Y: -0.284482
-        Z: -0.225336
+        X: -0.149212
+        Y: 0.104738
+        Z: 0.134343
       Name: Current View
       Near Clip Distance: 0.01
-      Pitch: 0.644798
+      Pitch: 0.504797
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 2.54409
+      Yaw: 0.783541
     Saved: ~
 Window Geometry:
   Displays:
