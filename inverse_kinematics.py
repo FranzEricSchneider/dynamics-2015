@@ -18,27 +18,29 @@ from ur5_model.msg import JointAngles
 
 def main():
     rospy.init_node('test_inverse_kinematics')
-    rospy.sleep(1.0)
     pub = rospy.Publisher('/ur5_model/joint_command', JointAngles, queue_size=10)
     pose_debug_pub = rospy.Publisher('effector_pose', Marker, queue_size=1)
+    rospy.sleep(1.0)
     IK = InverseKinematics()
     counter = 0
-    scalar = 5.0
-    radius = 0.5
+    scalar = 10.0
+    radius = 0.6
     while not rospy.is_shutdown():
         effector_pose = InitialEffectorPose(radius * np.sin(counter / scalar),
                                             radius * np.cos(counter / scalar),
-                                            radius * np.cos(counter / scalar) / 4,
-                                            0, np.pi/4, 0)
+                                            radius * np.cos(counter / scalar) / 2,
+                                            0, counter * np.pi/32, 0)
+    # effector_pose = InitialEffectorPose(0.3, 0.1, 0.2,
+    #                                     0, np.pi/4, 0)
         pose_debug_pub.publish(create_effector_marker(effector_pose.px, effector_pose.py, effector_pose.pz))
-    # effector_pose = InitialEffectorPose(0.4, 0, 0,
-    #                                     0, np.pi/2, 0)
         th1, th2, th3, th4, th5, th6 = IK.calculate_joints(effector_pose)
-        a = JointAngles([th1[0], th2[1], th3[1], th4[1], th5[0][0], th6])
+        rospy.loginfo('Calculated a thing')
+        a = JointAngles([th1[0], th2[0], th3[0], th4[0], th5[0][0], th6])
         pub.publish(a)
-        rospy.sleep(0.5)
+        rospy.loginfo('Published a thing')
+        rospy.sleep(0.25)
         counter += 1
-    rospy.spin()
+    # rospy.spin()
 
 
 class InverseKinematics():
@@ -47,15 +49,11 @@ class InverseKinematics():
         pass
 
     def calculate_joints(self, effector_pose):
-        # Tentatively checked off logically
         theta1 = self.calculate_theta_1(effector_pose)
-        # Tentatively checked off logically
         theta5 = self.calculate_theta_5(effector_pose, theta1[0])
-        # Checked off logically
-        theta6 = self.calculate_theta_6(effector_pose)
-        # 
+        theta6 = self.calculate_theta_6(effector_pose, theta1[0], theta5[0][0])
         theta2, theta3, theta4 = self.calculate_theta_234(effector_pose,
-                                                          theta1, theta5, theta6)
+                                                          theta1[0], theta5[0][0], theta6)
         return(theta1, theta2, theta3, theta4, theta5, theta6)
 
     def calculate_theta_1(self, effector_pose):
@@ -65,10 +63,6 @@ class InverseKinematics():
         p05z = effector_pose.pz - offset56[2, 0]
         R = np.sqrt( p05x**2 + p05y**2 )
         alpha1 = np.arctan2( p05y, p05x )
-        # print('self.FK.d4')
-        # print(self.FK.d4)
-        # print('R')
-        # print(R)
         alpha2 = np.arccos( self.FK.d4 / R )
         return( [alpha1 + alpha2 + np.pi / 2, alpha1 - alpha2 + np.pi / 2] )
 
@@ -79,14 +73,16 @@ class InverseKinematics():
         return( [ [abs_theta5, -abs_theta5], [0, 0] ] )
         # return( [ [abs_theta5[0], -abs_theta5[0]], [abs_theta5[1], -abs_theta5[1]] ] )
 
-    def calculate_theta_6(self, effector_pose):
-        return(effector_pose.psi)
+    def calculate_theta_6(self, effector_pose, theta1, theta5):
+        y_term = (- effector_pose.DH06[0, 1] * np.sin(theta1) + effector_pose.DH06[1, 1] * np.cos(theta1)) / np.sign(np.sin(theta5))
+        x_term = -(- effector_pose.DH06[0, 0] * np.sin(theta1) + effector_pose.DH06[1, 0] * np.cos(theta1)) / np.sign(np.sin(theta5))
+        return( np.arctan2(y_term, x_term) )
 
     def calculate_theta_234(self, effector_pose, theta1, theta5, theta6):
-        DH14 = inv(self.FK.DH45(theta5[0][1])) *\
+        DH14 = inv(self.FK.DH45(theta5)) *\
                inv(self.FK.DH56(theta6)) *\
                effector_pose.DH06 *\
-               inv(self.FK.DH01(theta1[0]))
+               inv(self.FK.DH01(theta1))
         # The translation in DH14 is from 4 to 1 in the 4 reference frame, so we can undo that
         translation14 = inv(DH14[0:3, 0:3]) * -DH14[0:3, 3]
         # We use this x_prime and y_prime because it's the frame that defines the RRR linkage. See paper for details
