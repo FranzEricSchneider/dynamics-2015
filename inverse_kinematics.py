@@ -22,7 +22,7 @@ def main():
     # These variables are used to make the test path of the arm
     counter = 0
     scalar = 10.0
-    radius = 0.6
+    radius = 2.6
     while not rospy.is_shutdown():
         effector_pose = InitialEffectorPose(radius * np.sin(counter / scalar),
                                             radius * np.cos(counter / scalar),
@@ -71,6 +71,8 @@ class InverseKinematics():
         p05z = effector_pose.pz - offset56[2, 0]
         # The distance from global origin to the 05 origin, in the global (x, y) plane
         R = np.sqrt( p05x**2 + p05y**2 )
+        if self.FK.d4 > R:
+            raise ValueError('An invalid effector pose was given')
         # Implements the math in the paper, doesn't have special meaning in an of itself
         alpha1 = np.arctan2( p05y, p05x )
         alpha2 = np.arccos( self.FK.d4 / R )
@@ -85,6 +87,8 @@ class InverseKinematics():
         '''
         # Implements the math in the paper, doesn't have special meaning in an of itself
         numerator = effector_pose.px * np.sin(theta1) - effector_pose.py * np.cos(theta1) - self.FK.d4
+        if abs(numerator) > abs(self.FK.d6):
+            raise ValueError('An invalid effector pose was given')
         abs_theta5 = np.arccos( numerator * np.sign(self.FK.d6) / self.FK.d6 )
         # Returns the four possible theta5 values
         return( [ [abs_theta5[0], -abs_theta5[0]], [abs_theta5[1], -abs_theta5[1]] ] )
