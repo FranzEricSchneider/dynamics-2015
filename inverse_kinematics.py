@@ -13,15 +13,13 @@ from forward_kinematics import UR5ForwardKinematics
 from ur5_model.msg import JointAngles
 
 
-# DEBUGGING - TRY LOOKING AT A SPECIFIC CASE WHERE theta = pi/4 or pi AND ARM IS ALONG THE X AXIS
-
-
 def main():
     rospy.init_node('test_inverse_kinematics')
     pub = rospy.Publisher('/ur5_model/joint_command', JointAngles, queue_size=10)
     pose_debug_pub = rospy.Publisher('effector_pose', Marker, queue_size=1)
     rospy.sleep(1.0)
     IK = InverseKinematics()
+    # These variables are used to make the test path of the arm
     counter = 0
     scalar = 10.0
     radius = 0.6
@@ -30,17 +28,16 @@ def main():
                                             radius * np.cos(counter / scalar),
                                             radius * np.cos(counter / scalar) / 2,
                                             0, counter * np.pi/32, 0)
-    # effector_pose = InitialEffectorPose(0.3, 0.1, 0.2,
-    #                                     0, np.pi/4, 0)
+        # This publisher publishes a marker pointing to where the end effector should be
         pose_debug_pub.publish(create_effector_marker(effector_pose.px, effector_pose.py, effector_pose.pz))
-        th1, th2, th3, th4, th5, th6 = IK.calculate_joints(effector_pose)
+        # Calculates all eight joint permutations given the effector pose
+        joint_permutations = IK.calculate_joints(effector_pose)
         rospy.loginfo('Calculated a thing')
-        a = JointAngles([th1[0], th2[0], th3[0], th4[0], th5[0][0], th6])
-        pub.publish(a)
+        for permutation in joint_permutations:
+            pub.publish(permutation)
+            rospy.sleep(0.25)
         rospy.loginfo('Published a thing')
-        rospy.sleep(0.25)
         counter += 1
-    # rospy.spin()
 
 
 class InverseKinematics():
@@ -50,11 +47,11 @@ class InverseKinematics():
 
     def calculate_joints(self, effector_pose):
         theta1 = self.calculate_theta_1(effector_pose)
-        theta5 = self.calculate_theta_5(effector_pose, theta1[0])
-        theta6 = self.calculate_theta_6(effector_pose, theta1[0], theta5[0][0])
+        theta5 = self.calculate_theta_5(effector_pose, theta1)
+        theta6 = self.calculate_theta_6(effector_pose, theta1, theta5)
         theta2, theta3, theta4 = self.calculate_theta_234(effector_pose,
-                                                          theta1[0], theta5[0][0], theta6)
-        return(theta1, theta2, theta3, theta4, theta5, theta6)
+                                                          theta1, theta5, theta6)
+        return(self.create_joint_permutations(theta1, theta2, theta3, theta4, theta5, theta6))
 
     def calculate_theta_1(self, effector_pose):
         offset56 = inv(effector_pose.R06) * np.matrix([0, 0, self.FK.d6]).transpose()
@@ -70,55 +67,73 @@ class InverseKinematics():
         # Remember that theta1 is an array with no values
         numerator = effector_pose.px * np.sin(theta1) - effector_pose.py * np.cos(theta1) - self.FK.d4
         abs_theta5 = np.arccos( numerator * np.sign(self.FK.d6) / self.FK.d6 )
-        return( [ [abs_theta5, -abs_theta5], [0, 0] ] )
-        # return( [ [abs_theta5[0], -abs_theta5[0]], [abs_theta5[1], -abs_theta5[1]] ] )
+        return( [ [abs_theta5[0], -abs_theta5[0]], [abs_theta5[1], -abs_theta5[1]] ] )
 
     def calculate_theta_6(self, effector_pose, theta1, theta5):
-        y_term = (- effector_pose.DH06[0, 1] * np.sin(theta1) + effector_pose.DH06[1, 1] * np.cos(theta1)) / np.sign(np.sin(theta5))
-        x_term = -(- effector_pose.DH06[0, 0] * np.sin(theta1) + effector_pose.DH06[1, 0] * np.cos(theta1)) / np.sign(np.sin(theta5))
-        return( np.arctan2(y_term, x_term) )
+        th6 = []
+        for th1, th5 in zip(theta1, theta5):
+            y_term = (- effector_pose.DH06[0, 1] * np.sin(th1) + effector_pose.DH06[1, 1] * np.cos(th1))
+            x_term = -(- effector_pose.DH06[0, 0] * np.sin(th1) + effector_pose.DH06[1, 0] * np.cos(th1))
+            th6.append([np.arctan2(y_term / np.sign(np.sin(th5[0])), x_term / np.sign(np.sin(th5[0]))),
+                        np.arctan2(y_term / np.sign(np.sin(th5[1])), x_term / np.sign(np.sin(th5[1])))])
+        return(th6)
 
-    def calculate_theta_234(self, effector_pose, theta1, theta5, theta6):
-        DH14 = inv(self.FK.DH45(theta5)) *\
-               inv(self.FK.DH56(theta6)) *\
-               effector_pose.DH06 *\
-               inv(self.FK.DH01(theta1))
-        # The translation in DH14 is from 4 to 1 in the 4 reference frame, so we can undo that
-        translation14 = inv(DH14[0:3, 0:3]) * -DH14[0:3, 3]
-        # We use this x_prime and y_prime because it's the frame that defines the RRR linkage. See paper for details
-        x_prime = translation14[0, 0]
-        y_prime = translation14[2, 0]
-        # The inverse matrix gets a rotation matrix from 1 to 4 assuming that 1 is rotated by 90 deg around its x-axis,
-        # therefore all planar. This is basically a global reference frame in the plane of the arm
-        # The non inverse matrix takes into account the fact that d5 is -pi/2 radians off from x4 around the z4 axis
-        R14_planar = np.matrix([[np.cos(-np.pi/2),  np.sin(-np.pi/2), 0],
-                                [-np.sin(-np.pi/2), np.cos(-np.pi/2), 0],
-                                [0,                 0,                1]]) *\
-                     DH14[0:3, 0:3] *\
-                     inv(np.matrix([[1, 0, 0],
-                                    [0, np.cos(np.pi/2),  np.sin(np.pi/2)],
-                                    [0, -np.sin(np.pi/2), np.cos(np.pi/2)]]))
-        # Phi is the 4 reference frame measured from a global frame. See paper for details
-        phi = np.arccos(R14_planar[0, 0]) * np.sign(R14_planar[0, 1])
-        # These L variables aren't strictly necessary, but they match the paper notation and make it easier to read
-        l1 = self.FK.a2
-        l2 = self.FK.a3
-        l3 = self.FK.d5
-        R_prime = np.sqrt( x_prime**2 + y_prime**2 )
-        # lambda is a temporary variable in the paper, I made up alpha to break things up
-        val_lambda = np.arctan2( -y_prime / R_prime, -x_prime / R_prime )
-        val_alpha = np.arccos( -(x_prime**2 + y_prime**2 + l1**2 - l2**2) / (2 * l1 * R_prime) )
-        # theta1 is the theta1 from the paper, which is theta2 in actuality
-        theta1 = [val_lambda + val_alpha, val_lambda - val_alpha]
-        # Same story for theta2 - it's theta3 in actuality
-        theta2 = [np.arctan2((y_prime - l1 * np.sin(th1)) / l2,
-                             (x_prime - l1 * np.cos(th1)) / l2) - th1 for th1 in theta1]
-        # The pi/2 term is added to reflect the fact that d5 is pi/2 off from x4
-        theta3 = [phi + np.pi/2 - (th1 + th2) for th1, th2 in zip(theta1, theta2)]
+    def calculate_theta_234(self, effector_pose, global_theta1, global_theta5, global_theta6):
+        theta1 = [[0, 0], [0, 0]]
+        theta2 = [[0, 0], [0, 0]]
+        theta3 = [[0, 0], [0, 0]]
+        for i in range(2):
+            for j in range(2):
+                DH14 = inv(self.FK.DH45(global_theta5[i][j])) *\
+                       inv(self.FK.DH56(global_theta6[i][j])) *\
+                       effector_pose.DH06 *\
+                       inv(self.FK.DH01(global_theta1[i]))
+                # The translation in DH14 is from 4 to 1 in the 4 reference frame, so we can undo that
+                translation14 = inv(DH14[0:3, 0:3]) * -DH14[0:3, 3]
+                # We use this x_prime and y_prime because it's the frame that defines the RRR linkage. See paper for details
+                x_prime = translation14[0, 0]
+                y_prime = translation14[2, 0]
+                # The inverse matrix gets a rotation matrix from 1 to 4 assuming that 1 is rotated by 90 deg around its x-axis,
+                # therefore all planar. This is basically a global reference frame in the plane of the arm
+                # The non inverse matrix takes into account the fact that d5 is -pi/2 radians off from x4 around the z4 axis
+                R14_planar = np.matrix([[np.cos(-np.pi/2),  np.sin(-np.pi/2), 0],
+                                        [-np.sin(-np.pi/2), np.cos(-np.pi/2), 0],
+                                        [0,                 0,                1]]) *\
+                             DH14[0:3, 0:3] *\
+                             inv(np.matrix([[1, 0, 0],
+                                            [0, np.cos(np.pi/2),  np.sin(np.pi/2)],
+                                            [0, -np.sin(np.pi/2), np.cos(np.pi/2)]]))
+                # Phi is the 4 reference frame measured from a global frame. See paper for details
+                phi = np.arccos(R14_planar[0, 0]) * np.sign(R14_planar[0, 1])
+                # These L variables aren't strictly necessary, but they match the paper notation and make it easier to read
+                l1 = self.FK.a2
+                l2 = self.FK.a3
+                l3 = self.FK.d5
+                R_prime = np.sqrt( x_prime**2 + y_prime**2 )
+                # lambda is a temporary variable in the paper, I made up alpha to break things up
+                val_lambda = np.arctan2( -y_prime / R_prime, -x_prime / R_prime )
+                val_alpha = np.arccos( -(x_prime**2 + y_prime**2 + l1**2 - l2**2) / (2 * l1 * R_prime) )
+                # theta1 is the theta1 from the paper, which is theta2 in actuality
+                theta1[i][j] = [val_lambda + val_alpha, val_lambda - val_alpha]
+                # Same story for theta2 - it's theta3 in actuality
+                theta2[i][j] = [np.arctan2((y_prime - l1 * np.sin(th1)) / l2,
+                                           (x_prime - l1 * np.cos(th1)) / l2) - th1 for th1 in theta1[i][j]]
+                # The pi/2 term is added to reflect the fact that d5 is pi/2 off from x4
+                theta3[i][j] = [phi + np.pi/2 - (th1 + th2) for th1, th2 in zip(theta1[i][j], theta2[i][j])]
         return(theta1, theta2, theta3)
 
-    def create_joint_permutations(self):
-        pass
+    def create_joint_permutations(self, th1, th2, th3, th4, th5, th6):
+        permutations = []
+        for i in range(2):
+            for j in range(2):
+                for k in range(2):
+                    permutations.append(JointAngles([th1[i],
+                                                     th2[i][j][k],
+                                                     th3[i][j][k],
+                                                     th4[i][j][k],
+                                                     th5[i][j],
+                                                     th6[i][j]]))
+        return(permutations)
 
 
 class InitialEffectorPose():
