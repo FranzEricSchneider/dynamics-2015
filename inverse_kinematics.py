@@ -34,7 +34,7 @@ def main():
         joint_permutations = IK.calculate_joints(effector_pose)
         for permutation in joint_permutations:
             pub.publish(permutation)
-            rospy.sleep(0.15)
+            rospy.sleep(0.5)
         rospy.loginfo('Published an effector pose')
         counter += 1
 
@@ -77,8 +77,10 @@ class InverseKinematics():
         # Implements the math in the paper, doesn't have special meaning in an of itself
         alpha1 = np.arctan2( p05y, p05x )
         alpha2 = np.arccos( self.FK.d4 / R )
-        # Returns the two possible theta1 values
-        return( [alpha1 + alpha2 + np.pi / 2, alpha1 - alpha2 + np.pi / 2] )
+        # Returns the two possible theta1 values, bounded between 0 and 2pi
+        theta1_1 = (alpha1 + alpha2 + np.pi / 2) % (2 * np.pi)
+        theta1_2 = (alpha1 - alpha2 + np.pi / 2) % (2 * np.pi)
+        return( [theta1_1, theta1_2] )
 
     def calculate_theta_5(self, effector_pose, theta1):
         '''
@@ -91,7 +93,9 @@ class InverseKinematics():
         if (abs(numerator) > abs(self.FK.d6)).any():
             raise ValueError('An invalid effector pose was given (theta5)')
         abs_theta5 = np.arccos( numerator * np.sign(self.FK.d6) / self.FK.d6 )
-        # Returns the four possible theta5 values
+        # Returns the four possible theta5 values, bounded between 0 and 2pi
+        abs_theta5[0] = abs_theta5[0] % (2 * np.pi)
+        abs_theta5[1] = abs_theta5[1] % (2 * np.pi)
         return( [ [abs_theta5[0], -abs_theta5[0]], [abs_theta5[1], -abs_theta5[1]] ] )
 
     def calculate_theta_6(self, effector_pose, theta1, theta5):
