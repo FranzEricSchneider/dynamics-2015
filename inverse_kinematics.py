@@ -22,7 +22,7 @@ def main():
     # These variables are used to make the test path of the arm
     counter = 0
     scalar = 10.0
-    radius = 2.6
+    radius = 0.6
     while not rospy.is_shutdown():
         effector_pose = InitialEffectorPose(radius * np.sin(counter / scalar),
                                             radius * np.cos(counter / scalar),
@@ -34,7 +34,7 @@ def main():
         joint_permutations = IK.calculate_joints(effector_pose)
         for permutation in joint_permutations:
             pub.publish(permutation)
-            rospy.sleep(0.25)
+            rospy.sleep(0.15)
         rospy.loginfo('Published an effector pose')
         counter += 1
 
@@ -42,6 +42,7 @@ def main():
 class InverseKinematics():
     def __init__(self):
         self.FK = UR5ForwardKinematics()
+        self.ZERO_THRESH = 1e-6
         pass
 
     def calculate_joints(self, effector_pose):
@@ -72,7 +73,7 @@ class InverseKinematics():
         # The distance from global origin to the 05 origin, in the global (x, y) plane
         R = np.sqrt( p05x**2 + p05y**2 )
         if self.FK.d4 > R:
-            raise ValueError('An invalid effector pose was given')
+            raise ValueError('An invalid effector pose was given (theta1)')
         # Implements the math in the paper, doesn't have special meaning in an of itself
         alpha1 = np.arctan2( p05y, p05x )
         alpha2 = np.arccos( self.FK.d4 / R )
@@ -87,8 +88,8 @@ class InverseKinematics():
         '''
         # Implements the math in the paper, doesn't have special meaning in an of itself
         numerator = effector_pose.px * np.sin(theta1) - effector_pose.py * np.cos(theta1) - self.FK.d4
-        if abs(numerator) > abs(self.FK.d6):
-            raise ValueError('An invalid effector pose was given')
+        if (abs(numerator) > abs(self.FK.d6)).any():
+            raise ValueError('An invalid effector pose was given (theta5)')
         abs_theta5 = np.arccos( numerator * np.sign(self.FK.d6) / self.FK.d6 )
         # Returns the four possible theta5 values
         return( [ [abs_theta5[0], -abs_theta5[0]], [abs_theta5[1], -abs_theta5[1]] ] )
@@ -101,11 +102,15 @@ class InverseKinematics():
         '''
         th6 = []
         for th1, th5 in zip(theta1, theta5):
-            # The paper walks through how these statements solve for theta6 as part of a spherical joint with theta5
-            y_term = (- effector_pose.DH06[0, 1] * np.sin(th1) + effector_pose.DH06[1, 1] * np.cos(th1))
-            x_term = -(- effector_pose.DH06[0, 0] * np.sin(th1) + effector_pose.DH06[1, 0] * np.cos(th1))
-            th6.append([np.arctan2(y_term / np.sign(np.sin(th5[0])), x_term / np.sign(np.sin(th5[0]))),
-                        np.arctan2(y_term / np.sign(np.sin(th5[1])), x_term / np.sign(np.sin(th5[1])))])
+            # This if statement checked for an undetermined state
+            if np.sin(th5[0]) < self.ZERO_THRESH:
+                th6.append([0.0, 0.0])
+            else:
+                # The paper walks through how these statements solve for theta6 as part of a spherical joint with theta5
+                y_term = (- effector_pose.DH06[0, 1] * np.sin(th1) + effector_pose.DH06[1, 1] * np.cos(th1))
+                x_term = -(- effector_pose.DH06[0, 0] * np.sin(th1) + effector_pose.DH06[1, 0] * np.cos(th1))
+                th6.append([np.arctan2(y_term / np.sign(np.sin(th5[0])), x_term / np.sign(np.sin(th5[0]))),
+                            np.arctan2(y_term / np.sign(np.sin(th5[1])), x_term / np.sign(np.sin(th5[1])))])
         # Returns the four possible theta6 values
         return(th6)
 
@@ -134,6 +139,9 @@ class InverseKinematics():
                 # We want the translation from the 01 origin to the 04 origin, and the translation in DH14 is from the
                 # 04 origin to 01 origin, so we can use the rotation matrix from 01 to 04 to get what we want
                 translation14 = inv(DH14[0:3, 0:3]) * -DH14[0:3, 3]
+                # If the distance from 01 origin to 04 origin is greater than the two arm links, throw error
+                if sum([p**2 for p in translation14[:, 0]]) > (self.FK.a2 + self.FK.a3)**2:
+                    raise ValueError('An invalid effector pose was given (theta234)')
                 # x_prime and y_prime represent the second joint, in our case the 04 origin. See paper for details
                 x_prime = translation14[0, 0]
                 y_prime = translation14[2, 0]
