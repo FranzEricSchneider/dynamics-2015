@@ -69,7 +69,7 @@ class PathPolynomial7():
         for i in range(len(ang[0])):
             joint = JointAngles([ang[0][i], ang[1][i], ang[2][i], ang[3][i], ang[4][i], ang[5][i]])
             self.joint_pub.publish(joint)
-            rospy.loginfo('Publishing, time elapsed = %.2f / %.2f', counter * dt, tf)
+            # rospy.loginfo('Publishing, time elapsed = %.2f / %.2f', counter * dt, tf)
             rospy.sleep(dt)
             counter += 1
 

@@ -9,6 +9,7 @@ import rospy
 from visualization_msgs.msg import Marker
 from geometry_msgs.msg import Point
 
+from effector_pose import EffectorPose
 from forward_kinematics import UR5ForwardKinematics
 from ur5_model.msg import JointAngles
 
@@ -21,21 +22,33 @@ def main():
     IK = InverseKinematics()
     # These variables are used to make the test path of the arm
     counter = 0
-    scalar = 10.0
+    scalar = 5.0
     radius = 0.6
+
+########################################################################################
+# I am suspicious of joint 6 calculations
+########################################################################################
+
     while not rospy.is_shutdown():
-        effector_pose = InitialEffectorPose(radius * np.sin(counter / scalar),
-                                            radius * np.cos(counter / scalar),
-                                            radius * np.cos(counter / scalar) / 2,
-                                            0, counter * np.pi/32, 0)
+        # effector_pose = EffectorPose(radius * np.sin(counter / scalar),
+        #                              radius * np.cos(counter / scalar),
+        #                              radius * np.cos(counter / scalar) / 2,
+        #                              0, counter * np.pi/32, 0)
+        effector_pose = EffectorPose(0.4, 0, 0,
+                                     # counter * np.pi/32, 0, 0)
+                                     np.pi/4, 0, 0)
+                                     # 0, 0, counter np.pi/32)
         # This publisher publishes a marker pointing to where the end effector should be
         pose_debug_pub.publish(create_effector_marker(effector_pose.px, effector_pose.py, effector_pose.pz))
         # Calculates all eight joint permutations given the effector pose
         joint_permutations = IK.calculate_joints(effector_pose)
-        for permutation in joint_permutations:
-            pub.publish(permutation)
-            rospy.sleep(0.5)
-        rospy.loginfo('Published an effector pose')
+        # for permutation in joint_permutations:
+        #     pub.publish(permutation)
+        #     rospy.sleep(1)
+        pub.publish(joint_permutations[0])
+        rospy.sleep(2)
+        # rospy.loginfo('Published an effector pose')
+        rospy.loginfo('Theta6 = %.2f', joint_permutations[0].arm_angle[5])
         counter += 1
 
 
@@ -45,11 +58,17 @@ class InverseKinematics():
         self.ZERO_THRESH = 1e-6
         pass
 
+    def calculate_closest_permutation(self, effector_pose, current_pose):
+        """ Calculates the best angles to make effector_pose happen, given current pose"""
+        permutations = self.calculate_joints(effector_pose)
+        best_permutation = self.determine_closest_permutation(current_pose, permutations)
+        return(best_permutation)
+
     def calculate_joints(self, effector_pose):
-        '''
+        """
         Calculates the joint possibilities for the UR5 arm as laid out in the UR5 inverse kinematics paper, then
         returns all possible permutations of those joint commands
-        '''
+        """
         theta1 = self.calculate_theta_1(effector_pose)
         theta5 = self.calculate_theta_5(effector_pose, theta1)
         theta6 = self.calculate_theta_6(effector_pose, theta1, theta5)
@@ -58,11 +77,11 @@ class InverseKinematics():
         return(self.create_joint_permutations(theta1, theta2, theta3, theta4, theta5, theta6))
 
     def calculate_theta_1(self, effector_pose):
-        '''
+        """
         -- Calculates the theta1 angle as laid out in the UR5 inverse kinematics paper, by stepping from the 06 origin
         back to the 05 origin and then using the knowledge that with the UR5 geometry the length d4 will always
         be parallel to y1
-        '''
+        """
         # Gets the global distance between the 05 and 06 origins by taking a d6 vector in the 06 frame and using the
         # R06 rotation matrix to express that vector in the global 00 frame
         offset56 = inv(effector_pose.R06) * np.matrix([0, 0, self.FK.d6]).transpose()
@@ -83,11 +102,11 @@ class InverseKinematics():
         return( [theta1_1, theta1_2] )
 
     def calculate_theta_5(self, effector_pose, theta1):
-        '''
+        """
         -- Calculates the theta5 angle as laid out in the UR5 inverse kinematics paper, by measuring how much the y5
         axis is lined up with the y1 axis
         -- Assumes that the theta1 passed in is a list with two angles (floats) inside
-        '''
+        """
         # Implements the math in the paper, doesn't have special meaning in an of itself
         numerator = effector_pose.px * np.sin(theta1) - effector_pose.py * np.cos(theta1) - self.FK.d4
         if (abs(numerator) > abs(self.FK.d6)).any():
@@ -99,11 +118,11 @@ class InverseKinematics():
         return( [ [abs_theta5[0], -abs_theta5[0]], [abs_theta5[1], -abs_theta5[1]] ] )
 
     def calculate_theta_6(self, effector_pose, theta1, theta5):
-        '''
+        """
         -- Calculates the theta6 angle as laid out in the UR5 inverse kinematics paper
         -- Assumes that the theta1 passed in is a list with two angles (floats) inside and that the theta5 passed in
         has four angles and is a list of lists of floats like so: [[a, b],[c, d]]
-        '''
+        """
         th6 = []
         for th1, th5 in zip(theta1, theta5):
             # This if statement checked for an undetermined state
@@ -113,19 +132,21 @@ class InverseKinematics():
                 # The paper walks through how these statements solve for theta6 as part of a spherical joint with theta5
                 y_term = (- effector_pose.DH06[0, 1] * np.sin(th1) + effector_pose.DH06[1, 1] * np.cos(th1))
                 x_term = -(- effector_pose.DH06[0, 0] * np.sin(th1) + effector_pose.DH06[1, 0] * np.cos(th1))
-                th6.append([np.arctan2(y_term / np.sign(np.sin(th5[0])), x_term / np.sign(np.sin(th5[0]))),
-                            np.arctan2(y_term / np.sign(np.sin(th5[1])), x_term / np.sign(np.sin(th5[1])))])
+                sgs50 = np.sign(np.sin(th5[0]))
+                sgs51 = np.sign(np.sin(th5[1]))
+                th6.append([np.arctan2(y_term / sgs50, x_term / sgs50),
+                            np.arctan2(y_term / sgs51, x_term / sgs51)])
         # Returns the four possible theta6 values
         return(th6)
 
     def calculate_theta_234(self, effector_pose, global_theta1, global_theta5, global_theta6):
-        '''
+        """
         -- Calculates the theta2/3/4 angles as laid out in the separate 3R planar manipulator IK paper. All variables
         are named to match those in the 3R paper, for easier reading, so theta1/2/3 are solved for (because that's
         what's in the paper) even though on the UR5 arm those are angles theta2/3/4
         -- Assumes that the theta1 passed in is a list with two angles (floats) inside and that the theta5/6 passed in
         have four angles in a list of lists of floats like so: [[a, b],[c, d]]
-        '''
+        """
         # These are empty variables that will be populated in the for loop. Each angle will eventually have 8 values
         theta1 = [[[0, 0], [0, 0]], [[0, 0], [0, 0]]]
         theta2 = [[[0, 0], [0, 0]], [[0, 0], [0, 0]]]
@@ -182,14 +203,14 @@ class InverseKinematics():
         return(theta1, theta2, theta3)
 
     def create_joint_permutations(self, th1, th2, th3, th4, th5, th6):
-        '''
+        """
         -- Takes the calculated joint angles and creates all possible permutations, b/c the arm can generally reach a
         given position in multiple ways
         -- Assumes (based on the paper) that there are two theta1 possibilities, two theta5/6 possibilities for each
         theta1, and two theta2/3/4 possibilities for each theta5/6 value. In the ideal case, where the arm can reach
         the desired point in all orientations, these values will all exist. When the arm can't reach some or all of
         these permutations the code might break, but I'm not sure if we'll deal with those cases
-        '''
+        """
         permutations = []
         for i in range(2):
             for j in range(2):
@@ -200,52 +221,41 @@ class InverseKinematics():
                                                      th4[i][j][k],
                                                      th5[i][j],
                                                      th6[i][j]]))
+        # print('permutations')
+        # print(permutations)
         return(permutations)
 
+    def determine_closest_permutation(self, actual, permutations):
+        """ Given a starting pose and joint permutations for a second pose, choose closest permutation to actual """
+        # Default value for cost
+        cost = 1e6
+        least_index = 0
+        for i in range(len(permutations)):
+            # Removing all of the "elbow down" solutions just because
+            if i in [1, 3, 4, 6]:
+                pass
+            elif self.permutation_cost(actual, permutations[i]) < cost:
+                cost = self.permutation_cost(actual, permutations[i])
+                least_index = i
+        # print('least_index')
+        # print(least_index)
+        return(permutations[least_index])
 
-class InitialEffectorPose():
-    def __init__(self, x, y, z, phi, theta, psi):
-        '''
-        -- Takes in the desired (x,y,z) global position of the effector, and the desired 313 Euler angles specifying
-        the desired starting orientation of the effector
-        -- Contains the position, the rotation matrix, and the Denavit-Hartenberg transformation matrix from the 00
-        reference frame to the 06 reference frame
-        '''
-        # Global position of the effector
-        self.px = x
-        self.py = y
-        self.pz = z
-        # 313 Euler angles for the effector
-        self.phi = phi
-        self.theta = theta
-        self.psi = psi
-        # Used to calculate the rotation matrix from 00 reference frame to the 06 reference frame
-        Rphi = np.matrix([[np.cos(phi),  np.sin(phi), 0],
-                        [-np.sin(phi), np.cos(phi), 0],
-                        [0,            0,           1]])
-        Rtheta = np.matrix([[1, 0,              0],
-                          [0, np.cos(theta),  np.sin(theta)],
-                          [0, -np.sin(theta), np.cos(theta)]])
-        Rpsi = np.matrix([[np.cos(psi),  np.sin(psi), 0],
-                        [-np.sin(psi), np.cos(psi), 0],
-                        [0,            0,           1]])
-        # Rotation matrix from 0 reference frame to the 6 reference frame
-        self.R06 = Rpsi * Rtheta * Rphi
-        # Components used to build up the 00->06 transformation matrix
-        # In a Denavit-Hartenberg matrix the translation portion is from the goal origin (in this case the 06 origin)
-        #   to the base origin (in this case the 00 origin), IN THE GOAL REFERENCE FRAME (in this case the 06
-        #   reference frame). That means that b/c we are given the global (x,y,z) coordinates, in order to build the
-        #   Denavit-Hartenberg matrix we need to invert the vector and express it in the 06 frame using the R06 matrix
-        translation = self.R06 * -np.matrix([x, y, z]).transpose()
-        bottom_layer = np.matrix([0, 0, 0, 1])
-        # The 4x4 Denavit-Hartenberg transformation matrix from the 00 reference frame to the 06 reference frame
-        self.DH06 = np.vstack( [np.hstack([self.R06, translation]), bottom_layer] )
+    def permutation_cost(self, permutation1, permutation2):
+        """
+        Cost function between two pose permutations (JointAngles)
+        Currently uses max delta between permutations, could be altered
+        """
+        p1 = np.array(permutation1.arm_angle)
+        p2 = np.array(permutation2.arm_angle)
+        max_delta = np.abs(p1 - p2).max()
+        return(max_delta)
 
 
 def create_effector_marker(x, y, z):
-    '''
+    """
     Creates a single orange marker in the workspace of the arm pointing at an x, y, z point
-    '''
+    """
     marker = Marker()
     marker.header.frame_id = 'ur5/base_link'
     marker.header.stamp = rospy.Time.now()
