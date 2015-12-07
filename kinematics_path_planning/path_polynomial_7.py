@@ -78,6 +78,7 @@ class PathPolynomial7():
         Takes in joint positions and derivaties from initial to final, as well as final time
         Inspiration taken from pg 737 of the Theory of Applied Robotics
         """
+        qf = self.correct_q0qf_loops(q0, qf)
         RHS = np.matrix([q0, Dq0, DDq0, DDDq0, qf, Dqf, DDqf, DDDqf]).transpose()
         LHS = np.matrix([[1, 0, 0, 0, 0, 0, 0, 0],
                          [0, 1, 0, 0, 0, 0, 0, 0],
@@ -89,6 +90,12 @@ class PathPolynomial7():
                          [0, 0, 0, 6, 24*tf, 60*tf**2, 120*tf**3, 210*tf**4]])
         coefficients = np.array((np.linalg.inv(LHS) * RHS).transpose())[0]
         return(coefficients)
+
+    def correct_q0qf_loops(self, q0, qf):
+        """ Tries to take loops across 0 and 2pi into account """
+        check_deltas = [-2 * np.pi, 0, 2 * np.pi]
+        distances = [abs(q0 - (qf + i)) for i in check_deltas]
+        return(qf + check_deltas[distances.index(min(distances))])
 
     def angle_equation(self, cf, t):
         """

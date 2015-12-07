@@ -56,9 +56,9 @@ void publish_arm_to_rviz(const ur5_model::JointAnglesConstPtr& arm) {
 }
 
 void create_origin(const ur5_model::JointAnglesConstPtr& arm) {
-  visualization_msgs::Marker x_axis = create_marker(0.4, 0, 0);
-  visualization_msgs::Marker y_axis = create_marker(0, 0.4, 0);
-  visualization_msgs::Marker z_axis = create_marker(0, 0, 0.4);
+  visualization_msgs::Marker x_axis = create_marker(1.0, 0, 0);
+  visualization_msgs::Marker y_axis = create_marker(0, 1.0, 0);
+  visualization_msgs::Marker z_axis = create_marker(0, 0, 1.0);
   x_axis.color.r = 1.0; x_axis.color.g = 0.0; x_axis.color.b = 0.0;
   x_axis.scale.x = 0.01;
   y_axis.color.r = 0.0; y_axis.color.g = 1.0; y_axis.color.b = 0.0;

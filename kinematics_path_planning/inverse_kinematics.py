@@ -22,7 +22,7 @@ def main():
     IK = InverseKinematics()
     # These variables are used to make the test path of the arm
     counter = 0
-    scalar = 5.0
+    scalar = 10.0
     radius = 0.6
 
 ########################################################################################
@@ -30,25 +30,18 @@ def main():
 ########################################################################################
 
     while not rospy.is_shutdown():
-        # effector_pose = EffectorPose(radius * np.sin(counter / scalar),
-        #                              radius * np.cos(counter / scalar),
-        #                              radius * np.cos(counter / scalar) / 2,
-        #                              0, counter * np.pi/32, 0)
-        effector_pose = EffectorPose(0.4, 0, 0,
-                                     # counter * np.pi/32, 0, 0)
-                                     np.pi/4, 0, 0)
-                                     # 0, 0, counter np.pi/32)
+        effector_pose = EffectorPose(radius * np.sin(counter / scalar),
+                                     radius * np.cos(counter / scalar),
+                                     radius * np.cos(counter / scalar) / 2,
+                                     np.pi/4, counter * np.pi/32, counter * np.pi/32)
         # This publisher publishes a marker pointing to where the end effector should be
         pose_debug_pub.publish(create_effector_marker(effector_pose.px, effector_pose.py, effector_pose.pz))
         # Calculates all eight joint permutations given the effector pose
         joint_permutations = IK.calculate_joints(effector_pose)
-        # for permutation in joint_permutations:
-        #     pub.publish(permutation)
-        #     rospy.sleep(1)
-        pub.publish(joint_permutations[0])
-        rospy.sleep(2)
-        # rospy.loginfo('Published an effector pose')
-        rospy.loginfo('Theta6 = %.2f', joint_permutations[0].arm_angle[5])
+        for permutation in joint_permutations:
+            pub.publish(permutation)
+            rospy.sleep(0.5)
+        rospy.loginfo('Published an effector pose')
         counter += 1
 
 
@@ -97,8 +90,8 @@ class InverseKinematics():
         alpha1 = np.arctan2( p05y, p05x )
         alpha2 = np.arccos( self.FK.d4 / R )
         # Returns the two possible theta1 values, bounded between 0 and 2pi
-        theta1_1 = (alpha1 + alpha2 + np.pi / 2) % (2 * np.pi)
-        theta1_2 = (alpha1 - alpha2 + np.pi / 2) % (2 * np.pi)
+        theta1_1 = alpha1 + alpha2 + np.pi / 2
+        theta1_2 = alpha1 - alpha2 + np.pi / 2
         return( [theta1_1, theta1_2] )
 
     def calculate_theta_5(self, effector_pose, theta1):
@@ -113,8 +106,8 @@ class InverseKinematics():
             raise ValueError('An invalid effector pose was given (theta5)')
         abs_theta5 = np.arccos( numerator * np.sign(self.FK.d6) / self.FK.d6 )
         # Returns the four possible theta5 values, bounded between 0 and 2pi
-        abs_theta5[0] = abs_theta5[0] % (2 * np.pi)
-        abs_theta5[1] = abs_theta5[1] % (2 * np.pi)
+        abs_theta5[0] = abs_theta5[0]
+        abs_theta5[1] = abs_theta5[1]
         return( [ [abs_theta5[0], -abs_theta5[0]], [abs_theta5[1], -abs_theta5[1]] ] )
 
     def calculate_theta_6(self, effector_pose, theta1, theta5):
@@ -129,9 +122,11 @@ class InverseKinematics():
             if np.sin(th5[0]) < self.ZERO_THRESH:
                 th6.append([0.0, 0.0])
             else:
+                x6_global = inv(effector_pose.R06) * np.matrix('1;0;0')
+                y6_global = inv(effector_pose.R06) * np.matrix('0;1;0')
                 # The paper walks through how these statements solve for theta6 as part of a spherical joint with theta5
-                y_term = (- effector_pose.DH06[0, 1] * np.sin(th1) + effector_pose.DH06[1, 1] * np.cos(th1))
-                x_term = -(- effector_pose.DH06[0, 0] * np.sin(th1) + effector_pose.DH06[1, 0] * np.cos(th1))
+                y_term =  (- y6_global[0, 0] * np.sin(th1) + y6_global[1, 0] * np.cos(th1))
+                x_term = -(- x6_global[0, 0] * np.sin(th1) + x6_global[1, 0] * np.cos(th1))
                 sgs50 = np.sign(np.sin(th5[0]))
                 sgs51 = np.sign(np.sin(th5[1]))
                 th6.append([np.arctan2(y_term / sgs50, x_term / sgs50),
@@ -183,6 +178,9 @@ class InverseKinematics():
                              inv(np.matrix([[1, 0, 0],
                                             [0, np.cos(np.pi/2),  np.sin(np.pi/2)],
                                             [0, -np.sin(np.pi/2), np.cos(np.pi/2)]]))
+                # Sometimes the value was slightly greater than 1.0, which caused problems
+                if abs(abs(R14_planar[0, 0]) - 1.0) < self.ZERO_THRESH:
+                    R14_planar[0, 0] = np.sign(R14_planar[0, 0])
                 # Phi is the angle of d5 measured against x1, and is calculated using the planar rotation matrix that
                 # goes from 01 to d5. See 3R paper for details
                 phi = np.arccos(R14_planar[0, 0]) * np.sign(R14_planar[0, 1])
@@ -215,12 +213,12 @@ class InverseKinematics():
         for i in range(2):
             for j in range(2):
                 for k in range(2):
-                    permutations.append(JointAngles([th1[i],
-                                                     th2[i][j][k],
-                                                     th3[i][j][k],
-                                                     th4[i][j][k],
-                                                     th5[i][j],
-                                                     th6[i][j]]))
+                    permutations.append(JointAngles([th1[i]       % (2 * np.pi),
+                                                     th2[i][j][k] % (2 * np.pi),
+                                                     th3[i][j][k] % (2 * np.pi),
+                                                     th4[i][j][k] % (2 * np.pi),
+                                                     th5[i][j]    % (2 * np.pi),
+                                                     th6[i][j]    % (2 * np.pi)]))
         # print('permutations')
         # print(permutations)
         return(permutations)
