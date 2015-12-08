@@ -24,11 +24,6 @@ def main():
     counter = 0
     scalar = 10.0
     radius = 0.6
-
-########################################################################################
-# I am suspicious of joint 6 calculations
-########################################################################################
-
     while not rospy.is_shutdown():
         effector_pose = EffectorPose(radius * np.sin(counter / scalar),
                                      radius * np.cos(counter / scalar),

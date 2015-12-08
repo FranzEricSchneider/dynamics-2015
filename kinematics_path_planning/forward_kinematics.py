@@ -1,7 +1,9 @@
 from numpy import pi
 from numpy import cos
 from numpy import sin
+from numpy import array
 from numpy import matrix
+from numpy.linalg import inv
 
 
 class UR5ForwardKinematics():
@@ -49,6 +51,26 @@ class UR5ForwardKinematics():
 
     def R56(self, theta6):
         return( self.DH56(theta6)[0:3, 0:3] )
+
+    def DH06(self, ang):
+        """ ang is the a JointAngles variable """
+        DH06 = self.DH56(ang[5]) * self.DH45(ang[4]) * self.DH34(ang[3]) *\
+               self.DH23(ang[2]) * self.DH12(ang[1]) * self.DH01(ang[0])
+        return(DH06)
+
+    def effectorXYZ(self, joint_angles):
+        """ Takes a ur5_model/JointAngles variable and calculates the effector XYZ position """
+        DH06 = self.DH06(joint_angles)
+        # A zero vector in the 06 reference frame
+        zero_vector = matrix('0;0;0;1')
+        effector_vector = array((inv(DH06) * zero_vector).transpose())[0]
+        return(effector_vector[0:3])
+
+    def effectorEulerAngles(self, joint_angles):
+        """ Takes joint angles in and returns phi, theta, psi 313 Euler angles """
+        # R313 = cphi cpsi - ctheta sphi spsi, cpsi sphi + ctheta cphi spsi, stheta spsi;
+        #        -cphi spsi - ctheta cpsi sphi, -sphi spsi + ctheta cphi cpsi, cpsi stheta;
+        #        stheta sphi, -cphi stheta, ctheta
 
 
 # See Theory of Applied Robotics pg. 242

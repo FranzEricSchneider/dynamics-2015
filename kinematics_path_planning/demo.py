@@ -21,15 +21,15 @@ def main():
     scalar = 1.0
     counter = 0
     while not rospy.is_shutdown():
-        ep1 = EffectorPose(radius * np.sin(counter / scalar),
-                           radius * np.cos(counter / scalar),
-                           0, 
-                           np.pi/2, np.pi - 0.25, 0)
-        pose1 = IK.calculate_closest_permutation(ep1, start_pose)
-        tf1 = 1.0
-        P7.calculate_and_publish_end_stop_path(start_pose, pose1, dt, tf1)
+        ep = EffectorPose(radius * np.sin(counter / scalar),
+                          radius * np.cos(counter / scalar),
+                          0, 
+                          np.pi/2, np.pi - 0.25, 0)
+        pose = IK.calculate_closest_permutation(ep, start_pose)
+        tf1 = 2.0
+        P7.calculate_and_publish_end_stop_path(start_pose, pose, dt, tf1)
         rospy.sleep(0.5)
-        P7.calculate_and_publish_end_stop_path(pose1, start_pose, dt, tf1)
+        P7.calculate_and_publish_end_stop_path(pose, start_pose, dt, tf1)
         rospy.sleep(0.5)
         counter += 1
 
