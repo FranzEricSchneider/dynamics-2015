@@ -40,6 +40,8 @@ class PathPolynomial7():
         arm_coefficients = self.calculate_arm_coefficients_end_stops(pose1, pose2, tf)
         arm_angle_path = self.calculate_arm_angles(arm_coefficients, t)
         self.publish_arm_path(arm_angle_path, dt, tf)
+        return(JointAngles([arm_angle_path[0][-1], arm_angle_path[1][-1], arm_angle_path[2][-1],
+                            arm_angle_path[3][-1], arm_angle_path[4][-1], arm_angle_path[5][-1]]))
 
     def calculate_arm_coefficients_end_stops(self, pose1, pose2, tf):
         """

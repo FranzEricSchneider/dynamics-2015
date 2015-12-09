@@ -80,6 +80,7 @@ class InverseKinematics():
         # The distance from global origin to the 05 origin, in the global (x, y) plane
         R = np.sqrt( p05x**2 + p05y**2 )
         if self.FK.d4 > R:
+            print(effector_pose.DH06)
             raise ValueError('An invalid effector pose was given (theta1)')
         # Implements the math in the paper, doesn't have special meaning in an of itself
         alpha1 = np.arctan2( p05y, p05x )
@@ -98,6 +99,7 @@ class InverseKinematics():
         # Implements the math in the paper, doesn't have special meaning in an of itself
         numerator = effector_pose.px * np.sin(theta1) - effector_pose.py * np.cos(theta1) - self.FK.d4
         if (abs(numerator) > abs(self.FK.d6)).any():
+            print(effector_pose.DH06)
             raise ValueError('An invalid effector pose was given (theta5)')
         abs_theta5 = np.arccos( numerator * np.sign(self.FK.d6) / self.FK.d6 )
         # Returns the four possible theta5 values, bounded between 0 and 2pi
@@ -156,6 +158,7 @@ class InverseKinematics():
                 translation14 = inv(DH14[0:3, 0:3]) * -DH14[0:3, 3]
                 # If the distance from 01 origin to 04 origin is greater than the two arm links, throw error
                 if sum([p**2 for p in translation14[:, 0]]) > (self.FK.a2 + self.FK.a3)**2:
+                    print(effector_pose.DH06)
                     raise ValueError('An invalid effector pose was given (theta234)')
                 # x_prime and y_prime represent the second joint, in our case the 04 origin. See paper for details
                 x_prime = translation14[0, 0]
